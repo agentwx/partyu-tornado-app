@@ -1,0 +1,4 @@
+# -*- coding: utf-8 -*-
+
+FOURSQUARE_CLIENT_ID = ''
+FOURSQUARE_CLIENT_SECRET = ''
