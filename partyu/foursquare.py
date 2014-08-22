@@ -29,7 +29,7 @@ class FoursquareComm(object):
             response = yield self.client.fetch(url)
 
             if response.code != 200:
-                raise FoursquareException(response.code)
+                raise FoursquareError(response.code)
 
             body = json.loads(response.body)
             venues = body['response']['venues']

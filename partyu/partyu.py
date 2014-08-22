@@ -6,6 +6,7 @@ from tornado.options import define, options
 
 from handlers import GetVenuesHandler
 from foursquare import FoursquareComm
+from facebook import FacebookComm
 
 
 class PartyuApp(Application):
@@ -17,8 +18,8 @@ class PartyuApp(Application):
         self.client = AsyncHTTPClient()
 
         self.comms = {}
-        self.comms['4sq'] = FoursquareComm(self.client)
-        self.comms['fb'] = None
+        self.comms['fsq'] = FoursquareComm(self.client)
+        self.comms['fb'] = FacebookComm(self.client)
 
 
 def main():
