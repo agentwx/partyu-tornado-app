@@ -1,0 +1,16 @@
+VIRTENV_HOME=$OPENSHIFT_REPO_DIR/virtualenv/
+
+# Delete previously built virtualenv
+echo "Installing dependencies..."
+
+if [ -d $VIRTENV_HOME ]; then
+    rm -rf $VIRTENV_HOME
+fi
+
+# Create virtualenv and install necessary packages
+virtualenv --no-site-packages $VIRTENV_HOME
+source $VIRTENV_HOME/bin/activate
+
+#install dependencies
+pip install $OPENSHIFT_REPO_DIR/
+echo "Build finished!"

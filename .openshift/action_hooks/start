@@ -1,5 +1,5 @@
 #!/bin/bash
-# The logic to start up your application should be put in this
-# script. The application will work only if it binds to
-# $OPENSHIFT_DIY_IP:8080
-nohup ${OPENSHIFT_REPO_DIR}/diy/hellotornado.py > ${OPENSHIFT_DIY_LOG_DIR}/hellotornado.log 2>&1 &
+VIRTENV_HOME=$OPENSHIFT_REPO_DIR/virtualenv/
+echo "Running app..."
+source $VIRTENV_HOME/bin/activate
+nohup partyu --host=${OPENSHIFT_DIY_IP} --port=${OPENSHIFT_DIY_PORT} > ${OPENSHIFT_DIY_LOG_DIR}/partyu.log 2>&1 &
