@@ -4,7 +4,7 @@ from tornado.web import Application
 from tornado.httpclient import AsyncHTTPClient
 from tornado.options import define, options
 
-from handlers import GetVenuesHandler
+from handlers import GetVenuesHandler, GetPlacesHandler, GetHotspotsHandler
 from foursquare import FoursquareComm
 from facebook import FacebookComm
 
@@ -27,7 +27,9 @@ def main():
     define("port", default=8080, help="Port")
     tornado.options.parse_command_line()
 
-    application = PartyuApp([(r"/getvenues", GetVenuesHandler),])
+    application = PartyuApp([(r"/getvenues", GetVenuesHandler),
+                             (r"/getplaces", GetPlacesHandler),
+                             (r"/gethotspots", GetHotspotsHandler),])
 
     application.listen(options.port, options.host)
     tornado.ioloop.IOLoop.instance().start()
