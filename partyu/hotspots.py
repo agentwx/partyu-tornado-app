@@ -22,8 +22,8 @@ class Hotspots(object):
         for venue in fb_venues:
             events = yield self.fb_comm.get_page_events(venue['contact']['facebook'])
 
-            for event in events:
-                h = Hotspot(eid=event['id'], vname=venue['contact']['facebookName'], ename=event['name'],
+            for event_id, event in events.iteritems():
+                h = Hotspot(eid=event_id, vname=venue['contact']['facebookName'], ename=event['name'],
                             ll=str(venue['location']['lat']) + ',' + str(venue['location']['lng']))
 
                 h.score = Hotspot.calculate_score(event, venue)

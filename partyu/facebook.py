@@ -55,18 +55,23 @@ class FacebookComm(object):
 
             body = json.loads(response.body)
 
-            events = []
+            events = {}
+            attending_fetch_ids = []
             for e in body['data']:
 
                 if 'attending_count' in e:
                     attending_count = int(e['attending_count'])
                 else:
-                    attending_count = yield self.get_event_attending_count(e['id'])
+                    attending_count = 0
+                    attending_fetch_ids.append(e['id'])
 
-                event = {'id': e['id'], 'name': e['name'],
-                        'attending': attending_count }
+                event = {'name': e['name'], 'attending': attending_count }
 
-                events.append(event)
+                events[e['id']] = event
+
+            #fetch attending count for all events at once
+            if len(attending_fetch_ids) > 0:
+                yield self.get_event_attending_count(events, attending_fetch_ids)
 
         except HTTPError as e:
             raise FacebookError(e.code)
@@ -74,8 +79,9 @@ class FacebookComm(object):
         raise Return(events)
 
     @coroutine
-    def get_event_attending_count(self, event_id):
-        url = FacebookComm.BASE_URL.format(endpoint='{event_id}/attending'.format(event_id=event_id))
+    def get_event_attending_count(self, events, fetch_ids):
+        url = FacebookComm.BASE_URL.format(endpoint='attending'.format(ids=','.join(fetch_ids)))
+        url += '&ids={ids}'.format(ids=','.join(fetch_ids))
 
         try:
             log.info('Fetching Facebook event attending count from [{0}]'.format(url))
@@ -85,10 +91,9 @@ class FacebookComm(object):
                 raise FacebookError(response.code)
 
             body = json.loads(response.body)
-            users = body['data']
-            attending = len(users)
+
+            for key, value in body.iteritems():
+                events[key]['attending'] = len(value['data'])
 
         except HTTPError as e:
             raise FacebookError(e.code)
-
-        raise Return(attending)

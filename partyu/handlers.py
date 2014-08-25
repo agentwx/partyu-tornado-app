@@ -11,7 +11,7 @@ class GetVenuesHandler(RequestHandler):
 
     @coroutine
     def get(self):
-        ll = self.get_query_argument('ll')
+        ll = self.get_query_argument('ll', '-30.02,-51.23')
         venues = yield self.fsq_comm.get_venues(ll)
         response = { 'venues': venues }
 
@@ -24,7 +24,7 @@ class GetPlacesHandler(RequestHandler):
 
     @coroutine
     def get(self):
-        ll = self.get_query_argument('ll')
+        ll = self.get_query_argument('ll', '-30.02,-51.23')
         q = self.get_query_argument('q', None)
 
         places = yield self.fb_comm.get_places(ll, q)
@@ -37,7 +37,7 @@ class GetHotspotsHandler(RequestHandler):
 
     @coroutine
     def get(self):
-        ll = self.get_query_argument('ll')
+        ll = self.get_query_argument('ll', '-30.02,-51.23')
 
         hotspots = yield Hotspots(self.comms).get_hotspots(ll)
 
