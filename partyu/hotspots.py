@@ -17,36 +17,35 @@ class Hotspots(object):
         #fetch venues around me
         venues = yield self.fsq_comm.get_venues(ll)
 
-        #for each venue that has facebook id, fetch its events
-        fb_venues = [ v for v in venues if 'contact' in v and 'facebook' in v['contact'] ]
-        for venue in fb_venues:
-            events = yield self.fb_comm.get_page_events(venue['contact']['facebook'])
+        #filter for only those venues that have facebook contact
+        #venues = [ v for v in venues if 'contact' in v and 'facebook' in v['contact'] ]
 
-            for event_id, event in events.iteritems():
-                h = Hotspot(eid=event_id, vname=venue['contact']['facebookName'], ename=event['name'],
-                            ll=str(venue['location']['lat']) + ',' + str(venue['location']['lng']))
+        #list all facebook venue ids so we can fetch them all at once
+        venues_fb_ids = [ v['contact']['facebook'] for v in venues if 'contact' in v and 'facebook' in v['contact'] ]
 
-                h.score = Hotspot.calculate_score(event, venue)
-                hotspots.append(h.__dict__)
+        events = yield self.fb_comm.get_pages_events(venues_fb_ids)
+
+        for event_id, event in events.iteritems():
+            h = Hotspot(eid=event_id, vname=event['venue_id'], ename=event['name'],
+                        location=event['location'])
+
+            h.score = Hotspot.calculate_score(event)
+            hotspots.append(h.__dict__)
 
         hotspots = sorted(hotspots, key=itemgetter('score'), reverse=True)
         raise Return(hotspots)
 
 class Hotspot(object):
-    def __init__(self, eid, ll, ename, vname):
+    def __init__(self, eid, location, ename, vname):
         self.event_id = eid
-        self.ll = ll
+        self.location = location
         self.ename = ename
         self.vname = vname
         self.score = 0
 
     @staticmethod
-    def calculate_score(event, venue):
+    def calculate_score(event):
         score = event['attending']
-
-        if 'hereNow' in venue:
-            score += venue['hereNow']['count']
-
         return score
 
 

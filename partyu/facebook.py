@@ -43,8 +43,9 @@ class FacebookComm(object):
         raise Return(places)
 
     @coroutine
-    def get_page_events(self, page_id):
-        url = FacebookComm.BASE_URL.format(endpoint='{page_id}/events'.format(page_id=page_id))
+    def get_pages_events(self, page_ids):
+        url = FacebookComm.BASE_URL.format(endpoint='events')
+        url += '&ids={ids}'.format(ids=','.join(page_ids))
 
         try:
             log.info('Fetching Facebook events from [{0}]'.format(url))
@@ -57,17 +58,19 @@ class FacebookComm(object):
 
             events = {}
             attending_fetch_ids = []
-            for e in body['data']:
 
-                if 'attending_count' in e:
-                    attending_count = int(e['attending_count'])
-                else:
-                    attending_count = 0
-                    attending_fetch_ids.append(e['id'])
+            for page_id, page in body.iteritems():
+                for e in page['data']:
 
-                event = {'name': e['name'], 'attending': attending_count }
+                    if 'attending_count' in e:
+                        attending_count = int(e['attending_count'])
+                    else:
+                        attending_count = 0
+                        attending_fetch_ids.append(e['id'])
 
-                events[e['id']] = event
+                    event = { 'name': e['name'], 'attending': attending_count, 'venue_id': page_id, 'location': e['location'] }
+
+                    events[e['id']] = event
 
             #fetch attending count for all events at once
             if len(attending_fetch_ids) > 0:
@@ -80,7 +83,7 @@ class FacebookComm(object):
 
     @coroutine
     def get_event_attending_count(self, events, fetch_ids):
-        url = FacebookComm.BASE_URL.format(endpoint='attending'.format(ids=','.join(fetch_ids)))
+        url = FacebookComm.BASE_URL.format(endpoint='attending')
         url += '&ids={ids}'.format(ids=','.join(fetch_ids))
 
         try:
