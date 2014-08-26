@@ -1,9 +1,9 @@
 #!/bin/bash
 VIRTENV_HOME=$OPENSHIFT_DEPENDENCIES_DIR/virtualenv/
 
-# Delete previously built virtualenv
 echo "Installing dependencies..."
 
+# Delete previously built virtualenv
 if [ -d $VIRTENV_HOME ]; then
     rm -rf $VIRTENV_HOME
 fi
