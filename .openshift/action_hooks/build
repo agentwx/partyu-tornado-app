@@ -1,4 +1,5 @@
-VIRTENV_HOME=$OPENSHIFT_REPO_DIR/virtualenv/
+#!/bin/bash
+VIRTENV_HOME=$OPENSHIFT_DEPENDENCIES_DIR/virtualenv/
 
 # Delete previously built virtualenv
 echo "Installing dependencies..."
@@ -13,4 +14,5 @@ source $VIRTENV_HOME/bin/activate
 
 #install dependencies
 pip install $OPENSHIFT_REPO_DIR/
+deactivate
 echo "Build finished!"

@@ -1,5 +1,5 @@
 #!/bin/bash
-VIRTENV_HOME=$OPENSHIFT_REPO_DIR/virtualenv/
+VIRTENV_HOME=$OPENSHIFT_DEPENDENCIES_DIR/virtualenv/
 echo "Running app..."
 source $VIRTENV_HOME/bin/activate
 nohup partyu --host=${OPENSHIFT_DIY_IP} --port=${OPENSHIFT_DIY_PORT} > ${OPENSHIFT_DIY_LOG_DIR}/partyu.log 2>&1 &
