@@ -18,34 +18,30 @@ class Hotspots(object):
         venues = yield self.fsq_comm.get_venues(ll)
 
         #filter for only those venues that have facebook contact
-        #venues = [ v for v in venues if 'contact' in v and 'facebook' in v['contact'] ]
+        fb_venues = { v['contact']['facebook'] : v for v in venues if 'contact' in v and 'facebook' in v['contact'] }
+        fb_venue_events = yield self.fb_comm.get_venues_events(fb_venues)
 
-        #list all facebook venue ids so we can fetch them all at once
-        venues_fb_ids = [ v['contact']['facebook'] for v in venues if 'contact' in v and 'facebook' in v['contact'] ]
-
-        events = yield self.fb_comm.get_pages_events(venues_fb_ids)
-
-        for event_id, event in events.iteritems():
-            h = Hotspot(eid=event_id, vname=event['venue_id'], ename=event['name'],
-                        location=event['location'])
-
-            h.score = Hotspot.calculate_score(event)
-            hotspots.append(h.__dict__)
+        for vid, venue in fb_venue_events.iteritems():
+            for eid, event in venue['events'].iteritems():
+                h = Hotspot(venue, event)
+                hotspots.append(h.__dict__)
 
         hotspots = sorted(hotspots, key=itemgetter('score'), reverse=True)
         raise Return(hotspots)
 
 class Hotspot(object):
-    def __init__(self, eid, location, ename, vname):
-        self.event_id = eid
-        self.location = location
-        self.ename = ename
-        self.vname = vname
-        self.score = 0
+    def __init__(self, venue, event):
+        self.hid = 'e' + event['id'] + ':v' + venue['id']
+        self.event = { 'name': event['name'], 'attending': event['attending_count'],
+                        'start_time': event['start_time'] }
 
-    @staticmethod
-    def calculate_score(event):
-        score = event['attending']
+        self.venue = { 'name': venue['name'],
+                        'll': str(venue['location']['lat']) + ',' + str(venue['location']['lng'])}
+
+        self.score = self.calculate_score()
+
+    def calculate_score(self):
+        score = self.event['attending_count'] if 'attending_count' in self.event else 0
         return score
 
 
