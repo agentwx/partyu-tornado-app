@@ -43,9 +43,9 @@ class FacebookComm(object):
         raise Return(places)
 
     @coroutine
-    def get_pages_events(self, page_ids):
+    def get_venues_events(self, venues):
         url = FacebookComm.BASE_URL.format(endpoint='events')
-        url += '&ids={ids}'.format(ids=','.join(page_ids))
+        url += '&ids={ids}'.format(ids=','.join(venues.keys()))
 
         try:
             log.info('Fetching Facebook events from [{0}]'.format(url))
@@ -56,30 +56,33 @@ class FacebookComm(object):
 
             body = json.loads(response.body)
 
-            events = {}
-            attending_fetch_ids = []
+            #for every page, fetch its events
+            venues_events = {}
+            for pid, page in body.iteritems():
+                if len(page['data']) == 0:
+                    continue
 
-            for page_id, page in body.iteritems():
-                for e in page['data']:
-
-                    if 'attending_count' in e:
-                        attending_count = int(e['attending_count'])
+                events = {}
+                attending_fetch_ids = []
+                for event in page['data']:
+                    if 'attending_count' in event:
+                        attending_count = int(event['attending_count'])
                     else:
                         attending_count = 0
-                        attending_fetch_ids.append(e['id'])
+                        attending_fetch_ids.append(event['id'])
 
-                    event = { 'name': e['name'], 'attending': attending_count, 'venue_id': page_id, 'location': e['location'] }
+                    events[event['id']] = event
 
-                    events[e['id']] = event
+                if len(attending_fetch_ids) > 0:
+                    yield self.get_event_attending_count(events, attending_fetch_ids)
 
-            #fetch attending count for all events at once
-            if len(attending_fetch_ids) > 0:
-                yield self.get_event_attending_count(events, attending_fetch_ids)
+                venues_events[pid] = venues[pid]
+                venues_events[pid]['events'] = events
 
         except HTTPError as e:
             raise FacebookError(e.code)
 
-        raise Return(events)
+        raise Return(venues_events)
 
     @coroutine
     def get_event_attending_count(self, events, fetch_ids):
@@ -96,7 +99,7 @@ class FacebookComm(object):
             body = json.loads(response.body)
 
             for key, value in body.iteritems():
-                events[key]['attending'] = len(value['data'])
+                events[key]['attending_count'] = len(value['data'])
 
         except HTTPError as e:
             raise FacebookError(e.code)
