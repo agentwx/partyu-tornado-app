@@ -16,7 +16,7 @@ if [ ! -d $OPENSHIFT_DATA_DIR/bin ]; then
 
     # install setuptools and pip
     cd $OPENSHIFT_TMP_DIR
-    wget http://pypi.python.org/packages/source/s/setuptools/setuptools-0.6c11.ta...
+    wget http://pypi.python.org/packages/source/s/setuptools/setuptools-0.6c11.tar.gz
     tar zxf setuptools-0.6c11.tar.gz
     cd setuptools-0.6c11
     python setup.py install
@@ -26,9 +26,9 @@ if [ ! -d $OPENSHIFT_DATA_DIR/bin ]; then
     cd pip-1.1
     python setup.py install
 
-    # install uWSGI
-    #cd $OPENSHIFT_TMP_DIR
-    #pip install uwsgi
+    # install virtualenv
+    cd $OPENSHIFT_TMP_DIR
+    pip install virtualenv
 
     # cleanup
     cd $OPENSHIFT_TMP_DIR
