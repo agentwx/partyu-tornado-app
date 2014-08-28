@@ -19,9 +19,15 @@ class Hotspots(object):
 
         #filter for only those venues that have facebook contact
         fb_venues = { v['contact']['facebook'] : v for v in venues if 'contact' in v and 'facebook' in v['contact'] }
-        fb_venue_events = yield self.fb_comm.get_venues_events(fb_venues)
+        fb_venue_events = yield self.fb_comm.get_venues_events(fb_venues) if len(fb_venues.keys()) > 0 else {}
 
-        for vid, venue in fb_venue_events.iteritems():
+        #for the rest, search for the venue on facebook and try to match it to foursquare
+        fsq_venues = { v['name'] : v for v in venues if 'contact' not in v or 'facebook' not in v['contact'] }
+        fsq_venue_events = yield self.fb_comm.get_unknown_venues_events(fsq_venues) if len(fsq_venues.keys()) > 0 else {}
+
+        all_venues_events = dict(fb_venue_events.items() + fsq_venue_events.items())
+
+        for vid, venue in all_venues_events.iteritems():
             for eid, event in venue['events'].iteritems():
                 h = Hotspot(venue, event)
                 hotspots.append(h.__dict__)
@@ -41,7 +47,7 @@ class Hotspot(object):
         self.score = self.calculate_score()
 
     def calculate_score(self):
-        score = self.event['attending_count'] if 'attending_count' in self.event else 0
+        score = self.event['attending']
         return score
 
 
