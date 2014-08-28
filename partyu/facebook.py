@@ -9,10 +9,6 @@ import difflib
 from keys import FACEBOOK_APP_ID, FACEBOOK_APP_SECRET
 from utils import friendly_str
 
-class FacebookError(Exception):
-    ''' Raised for any error communicating with the API '''
-    pass
-
 class FacebookComm(object):
 
     BASE_URL = 'https://graph.facebook.com/{endpoint}?access_token={app_id}|{app_secret}'\
@@ -45,7 +41,8 @@ class FacebookComm(object):
                 place = places[0]
 
         except HTTPError as e:
-            raise FacebookError(e.code)
+            log.error('Facebook error while calling [{0}]!'.format(url))
+            raise Return(None)
 
         raise Return(place)
 
@@ -112,7 +109,8 @@ class FacebookComm(object):
                 venues_events[pid]['events'] = events
 
         except HTTPError as e:
-            raise FacebookError(e.code)
+            log.error('Facebook error while calling [{0}]!'.format(url))
+            raise Return(venues_events)
 
         raise Return(venues_events)
 
@@ -134,4 +132,5 @@ class FacebookComm(object):
                 events[key]['attending_count'] = len(value['data'])
 
         except HTTPError as e:
-            raise FacebookError(e.code)
+            log.error('Facebook error while calling [{0}]!'.format(url))
+            raise Return(events)
