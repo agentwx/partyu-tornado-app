@@ -161,7 +161,10 @@ class FacebookComm(object):
         tzmaxdate = edate + datetime.timedelta(seconds=60 * 60 * 24)
 
         #convert date to utc if needed
-        maxdate = (tzmaxdate - tzmaxdate.utcoffset()).replace(tzinfo=None)
+        if tzmaxdate.utcoffset() is not None:
+            maxdate = (tzmaxdate - tzmaxdate.utcoffset()).replace(tzinfo=None)
+        else:
+            maxdate = tzmaxdate
 
         if maxdate < datetime.datetime.utcnow():
             log.info('Facebook event [{0}] expired!'.format(event['id']))
