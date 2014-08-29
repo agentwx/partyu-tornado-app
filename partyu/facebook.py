@@ -5,6 +5,8 @@ from tornado.httpclient import HTTPError
 from tornado.log import app_log as log
 import json
 import difflib
+import datetime
+from dateutil import parser
 
 from keys import FACEBOOK_APP_ID, FACEBOOK_APP_SECRET
 from utils import friendly_str
@@ -78,6 +80,8 @@ class FacebookComm(object):
         url = FacebookComm.BASE_URL.format(endpoint='events')
         url += '&ids={ids}'.format(ids=','.join(venues.keys()))
 
+        venues_events = {}
+
         try:
             log.info('Fetching Facebook events from [{0}]'.format(url))
             response = yield self.client.fetch(url)
@@ -96,6 +100,9 @@ class FacebookComm(object):
                 events = {}
                 attending_fetch_ids = []
                 for event in page['data']:
+                    if self.is_event_expired(event):
+                        continue
+
                     if 'attending_count' not in event:
                         attending_fetch_ids.append(event['id'])
                         event['attending_count'] = 0
@@ -134,3 +141,18 @@ class FacebookComm(object):
         except HTTPError as e:
             log.error('Facebook error while calling [{0}]!'.format(url))
             raise Return(events)
+
+    def is_event_expired(self, event):
+        edate = parser.parse(event['end_time'] if 'end_time' in event else event['start_time'])
+        tzmaxdate = edate + datetime.timedelta(seconds=60 * 60 * 24)
+
+        #convert date to utc if needed
+        if tzmaxdate.utcoffset():
+            maxdate = (tzmaxdate - tzmaxdate.utcoffset()).replace(tzinfo=None)
+        else:
+            maxdate = tzmaxdate
+
+        if maxdate < datetime.datetime.utcnow():
+            return True
+
+        return False
