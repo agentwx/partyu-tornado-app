@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from tornado.gen import coroutine, Return
-from tornado.httpclient import HTTPError
+from tornado.gen import coroutine, Return, Task
+from tornado.httpclient import HTTPError, HTTPRequest
 from tornado.log import app_log as log
+from tornado.options import options
 import json
 import difflib
 import datetime
@@ -31,7 +32,8 @@ class FacebookComm(object):
             url += '&type=place&center={ll}&distance=100&q={q}'.format(ll=ll, q=q)
 
             log.info('Fetching Facebook places from [{0}]'.format(url))
-            response = yield self.client.fetch(url)
+            request = HTTPRequest(url=url, connect_timeout=options.http_request_timeout, request_timeout=options.http_request_timeout)
+            response = yield self.client.fetch(request)
 
             if response.code != 200:
                 raise FacebookError(response.code)
@@ -43,35 +45,39 @@ class FacebookComm(object):
                 place = places[0]
 
         except HTTPError as e:
-            log.error('Facebook error while calling [{0}]!'.format(url))
+            log.error('Facebook error [{0}] while calling [{1}]!'.format(e, url))
             raise Return(None)
 
         raise Return(place)
 
     @coroutine
     def get_unknown_venues_events(self, venues):
-        fb_venues = {}
+        search_url = FacebookComm.BASE_URL.format(endpoint=FacebookComm.SEARCH_ENDPOINT)
 
         #try matching a foursquare venue to a facebook place
+        fb_venues = {}
+        yields = {}
+
         for vname, venue in venues.iteritems():
-            vname = friendly_str(vname)
-            fb_place = yield self.get_places(q=vname, ll=str(venue['location']['lat']) + ',' + str(venue['location']['lng']))
-            if fb_place is None:
-                log.info('Venue {0} not found on Facebook!'.format(vname))
+            ll = str(venue['location']['lat']) + ',' + str(venue['location']['lng'])
+            yields[vname] = Task(self.get_places, ll=ll, q=friendly_str(vname))
+
+        log.info('Fetching {0} places from Facebook...'.format(len(yields.keys())))
+
+        places = yield yields
+
+        for vname, place in places.iteritems():
+            if place is None:
+                log.info('Venue {0} not found on Facebook!'.format(friendly_str(vname)))
                 continue
 
-            fb_venues[fb_place['id']] = venue
-            '''
-            fb_place['name'] = friendly_str(fb_place['name'])
-            if len(difflib.get_close_matches(vname, [fb_place['name']])) > 0:
-                fb_venues[fb_place['id']] = venue
-            else:
-                log.info('Venue [{0}] not close enough to [{1}], ignoring!'.format(vname, fb_place['name']))
-                continue'''
+            venue = venues[vname]
+            fb_venues[place['id']] = venue
 
         if len(fb_venues.keys()) == 0:
             raise Return({})
 
+        # we have the facebook id, fetch the events
         fb_venues_events = yield self.get_venues_events(fb_venues)
         raise Return(fb_venues_events)
 
@@ -84,40 +90,48 @@ class FacebookComm(object):
 
         try:
             log.info('Fetching Facebook events from [{0}]'.format(url))
-            response = yield self.client.fetch(url)
-
-            if response.code != 200:
-                raise FacebookError(response.code)
-
-            body = json.loads(response.body)
-
-            #for every page, fetch its events
-            venues_events = {}
-            for pid, page in body.iteritems():
-                if len(page['data']) == 0:
-                    continue
-
-                events = {}
-                attending_fetch_ids = []
-                for event in page['data']:
-                    if self.is_event_expired(event):
-                        continue
-
-                    if 'attending_count' not in event:
-                        attending_fetch_ids.append(event['id'])
-                        event['attending_count'] = 0
-
-                    events[event['id']] = event
-
-                if len(attending_fetch_ids) > 0:
-                    yield self.get_event_attending_count(events, attending_fetch_ids)
-
-                venues_events[pid] = venues[pid]
-                venues_events[pid]['events'] = events
+            request = HTTPRequest(url=url, connect_timeout=options.http_request_timeout, request_timeout=options.http_request_timeout)
+            response = yield self.client.fetch(request)
 
         except HTTPError as e:
-            log.error('Facebook error while calling [{0}]!'.format(url))
+            log.error('Facebook error [{0}] while calling [{1}]!'.format(e, url))
             raise Return(venues_events)
+
+        body = json.loads(response.body)
+
+        #for every page, fetch its events
+        venues_events = {}
+        yields = {}
+
+        for pid, page in body.iteritems():
+            if len(page['data']) == 0:
+                continue
+
+            events = {}
+            attending_fetch_ids = []
+            for event in page['data']:
+                if self.is_event_expired(event):
+                    continue
+
+                if 'attending_count' not in event:
+                    attending_fetch_ids.append(event['id'])
+                    event['attending_count'] = 0
+
+                events[event['id']] = event
+
+            if len(attending_fetch_ids) > 0:
+                yields[pid] = Task(self.get_event_attending_count, events, attending_fetch_ids)
+
+        log.info('Fetching event attending count for [{0}] venues...'.format(len(yields.keys())))
+        pages_events = yield yields
+
+        for pid, events in pages_events.iteritems():
+            if events is None:
+                log.info('No Facebook events for venue [{0}]'.format(venues[pid]['name']))
+                continue
+
+            venues_events[pid] = venues[pid]
+            venues_events[pid]['events'] = events
 
         raise Return(venues_events)
 
@@ -128,10 +142,8 @@ class FacebookComm(object):
 
         try:
             log.info('Fetching Facebook event attending count from [{0}]'.format(url))
-            response = yield self.client.fetch(url)
-
-            if response.code != 200:
-                raise FacebookError(response.code)
+            request = HTTPRequest(url=url, connect_timeout=options.http_request_timeout, request_timeout=options.http_request_timeout)
+            response = yield self.client.fetch(request)
 
             body = json.loads(response.body)
 
@@ -139,8 +151,10 @@ class FacebookComm(object):
                 events[key]['attending_count'] = len(value['data'])
 
         except HTTPError as e:
-            log.error('Facebook error while calling [{0}]!'.format(url))
+            log.error('Facebook error [{0}] while calling [{1}]!'.format(e, url))
             raise Return(events)
+
+        raise Return(events)
 
     def is_event_expired(self, event):
         edate = parser.parse(event['end_time'] if 'end_time' in event else event['start_time'])
@@ -153,6 +167,7 @@ class FacebookComm(object):
             maxdate = tzmaxdate
 
         if maxdate < datetime.datetime.utcnow():
+            log.info('Facebook event [{0}] expired!'.format(event['id']))
             return True
 
         return False

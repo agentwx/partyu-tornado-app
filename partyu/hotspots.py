@@ -13,20 +13,26 @@ class Hotspots(object):
     def get_hotspots(self, ll):
         ''' Return a list of the best hotspots around! '''
         hotspots = []
+        yields = []
 
         #fetch venues around me
         venues = yield self.fsq_comm.get_venues(ll)
 
         #filter for only those venues that have facebook contact
         fb_venues = { v['contact']['facebook'] : v for v in venues if 'contact' in v and 'facebook' in v['contact'] }
-        fb_venue_events = yield self.fb_comm.get_venues_events(fb_venues) if len(fb_venues.keys()) > 0 else {}
+        future = self.fb_comm.get_venues_events(fb_venues)
+        yields.append(future)
 
         #for the rest, search for the venue on facebook and try to match it to foursquare
         fsq_venues = { v['name'] : v for v in venues if 'contact' not in v or 'facebook' not in v['contact'] }
-        fsq_venue_events = yield self.fb_comm.get_unknown_venues_events(fsq_venues) if len(fsq_venues.keys()) > 0 else {}
+        future = self.fb_comm.get_unknown_venues_events(fsq_venues)
+        yields.append(future)
 
-        all_venues_events = dict(fb_venue_events.items() + fsq_venue_events.items())
+        #run each fetch in 'parallel' and merge the results
+        responses = yield yields
+        all_venues_events = { k: v for d in responses for k, v in d.items() }
 
+        #create the hotspot object
         for vid, venue in all_venues_events.iteritems():
             for eid, event in venue['events'].iteritems():
                 h = Hotspot(venue, event)

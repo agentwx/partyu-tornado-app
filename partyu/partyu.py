@@ -15,6 +15,7 @@ class PartyuApp(Application):
 
         self.db = None
 
+        AsyncHTTPClient.configure(None, max_clients=options.http_max_clients)
         self.client = AsyncHTTPClient()
 
         self.comms = {}
@@ -25,6 +26,8 @@ class PartyuApp(Application):
 def main():
     define("host", default="127.0.0.1", help="Host IP")
     define("port", default=8080, help="Port")
+    define("http_max_clients", default=1000, help="AsyncHTTP max clients")
+    define("http_request_timeout", default=20.0, help="Timeout for all HTTP requests")
     tornado.options.parse_command_line()
 
     application = PartyuApp([(r"/getvenues", GetVenuesHandler),
