@@ -18,14 +18,15 @@ class FoursquareComm(object):
 
     VENUES_ENDPOINT = 'venues/search'
     VENUES_CATEGORIES = {'Nightclub': '4bf58dd8d48988d11f941735',
-                         'Bar' : '4bf58dd8d48988d116941735',
-                         'Brewery': '50327c8591d4c4b30a586d5d',
-                         'Lounge' : '4bf58dd8d48988d121941735',
-                         'Pub': '4bf58dd8d48988d11b941735',
-                         'Other Nightlife': '4bf58dd8d48988d11a941735',
-                         'Beach Bar': '52e81612bcbc57f1066b7a0d',
-                         'Beer Garden': '4bf58dd8d48988d117941735',
-                         'Cocktail Bar': '4bf58dd8d48988d11e941735'}
+                         #'Bar' : '4bf58dd8d48988d116941735',
+                         #'Brewery': '50327c8591d4c4b30a586d5d',
+                         #'Lounge' : '4bf58dd8d48988d121941735',
+                         #'Pub': '4bf58dd8d48988d11b941735',
+                         #'Other Nightlife': '4bf58dd8d48988d11a941735',
+                         #'Beach Bar': '52e81612bcbc57f1066b7a0d',
+                         #'Beer Garden': '4bf58dd8d48988d117941735',
+                         #'Cocktail Bar': '4bf58dd8d48988d11e941735'
+                         }
 
     def __init__(self, client):
         self.client = client

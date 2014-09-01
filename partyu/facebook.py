@@ -52,19 +52,20 @@ class FacebookComm(object):
 
     @coroutine
     def get_unknown_venues_events(self, venues):
+        ''' Fetch all events for a list of foursquare venue names '''
         search_url = FacebookComm.BASE_URL.format(endpoint=FacebookComm.SEARCH_ENDPOINT)
 
         #try matching a foursquare venue to a facebook place
         fb_venues = {}
-        yields = {}
+        tasks = {}
 
         for vname, venue in venues.iteritems():
             ll = str(venue['location']['lat']) + ',' + str(venue['location']['lng'])
-            yields[vname] = Task(self.get_places, ll=ll, q=friendly_str(vname))
+            tasks[vname] = Task(self.get_places, ll=ll, q=friendly_str(vname))
 
-        log.info('Fetching {0} places from Facebook...'.format(len(yields.keys())))
+        log.info('Fetching {0} places from Facebook...'.format(len(tasks.keys())))
 
-        places = yield yields
+        places = yield tasks
 
         for vname, place in places.iteritems():
             if place is None:
@@ -83,6 +84,7 @@ class FacebookComm(object):
 
     @coroutine
     def get_venues_events(self, venues):
+        ''' Fetch all events for all facebook page ids provided '''
         url = FacebookComm.BASE_URL.format(endpoint='events')
         url += '&ids={ids}'.format(ids=','.join(venues.keys()))
 
@@ -101,7 +103,7 @@ class FacebookComm(object):
 
         #for every page, fetch its events
         venues_events = {}
-        yields = {}
+        tasks = {}
 
         for pid, page in body.iteritems():
             if len(page['data']) == 0:
@@ -120,10 +122,10 @@ class FacebookComm(object):
                 events[event['id']] = event
 
             if len(attending_fetch_ids) > 0:
-                yields[pid] = Task(self.get_event_attending_count, events, attending_fetch_ids)
+                tasks[pid] = Task(self.get_event_attending_count, events, attending_fetch_ids)
 
-        log.info('Fetching event attending count for [{0}] venues...'.format(len(yields.keys())))
-        pages_events = yield yields
+        log.info('Fetching event attending count for [{0}] venues...'.format(len(tasks.keys())))
+        pages_events = yield tasks
 
         for pid, events in pages_events.iteritems():
             if events is None:
@@ -157,7 +159,7 @@ class FacebookComm(object):
         raise Return(events)
 
     def is_event_expired(self, event):
-        edate = parser.parse(event['end_time'] if 'end_time' in event else event['start_time'])
+        edate = parser.parse(event['start_time'])
         tzmaxdate = edate + datetime.timedelta(seconds=60 * 60 * 24)
 
         #convert date to utc if needed
@@ -167,7 +169,7 @@ class FacebookComm(object):
             maxdate = tzmaxdate
 
         if maxdate < datetime.datetime.utcnow():
-            log.info('Facebook event [{0}] expired!'.format(event['id']))
+            log.info('Facebook event [{0}] expired at [{1}]!'.format(event['id'], maxdate))
             return True
 
         return False
