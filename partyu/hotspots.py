@@ -29,7 +29,8 @@ def get_hotspots(comms, ll):
 
     #create the hotspot object
     for vid, venue in all_venues_events.iteritems():
-        h = Hotspot(vid, venue, venue['events'])
+        events = venue['events'] if 'events' in venue else {}
+        h = Hotspot(vid, venue, events)
         hotspots.append(h.__dict__)
 
     raise Return(hotspots)

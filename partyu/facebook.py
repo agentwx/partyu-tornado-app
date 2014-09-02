@@ -102,9 +102,7 @@ class FacebookComm(object):
         body = json.loads(response.body)
 
         #for every page, fetch its events
-        venues_events = {}
         tasks = {}
-
         for pid, page in body.iteritems():
             if len(page['data']) == 0:
                 continue
@@ -124,18 +122,14 @@ class FacebookComm(object):
             if len(attending_fetch_ids) > 0:
                 tasks[pid] = Task(self.get_event_attending_count, events, attending_fetch_ids)
 
-        log.info('Fetching event attending count for [{0}] venues...'.format(len(tasks.keys())))
+        log.info('Fetching event attending count for [{0}] events...'.format(len(tasks.keys())))
         pages_events = yield tasks
 
+        #merge the returned events with the venues info
         for pid, events in pages_events.iteritems():
-            if events is None:
-                log.info('No Facebook events for venue [{0}]'.format(venues[pid]['name']))
-                continue
+            venues[pid]['events'] = events or {}
 
-            venues_events[pid] = venues[pid]
-            venues_events[pid]['events'] = events
-
-        raise Return(venues_events)
+        raise Return(venues)
 
     @coroutine
     def get_event_attending_count(self, events, fetch_ids):
