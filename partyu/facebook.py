@@ -60,7 +60,7 @@ class FacebookComm(object):
         tasks = {}
 
         for vname, venue in venues.iteritems():
-            ll = str(venue['location']['lat']) + ',' + str(venue['location']['lng'])
+            ll = venue['ll']
             tasks[vname] = Task(self.get_places, ll=ll, q=friendly_str(vname))
 
         log.info('Fetching {0} places from Facebook...'.format(len(tasks.keys())))
@@ -115,7 +115,6 @@ class FacebookComm(object):
 
                 if 'attending_count' not in event:
                     attending_fetch_ids.append(event['id'])
-                    event['attending_count'] = 0
 
                 events[event['id']] = event
 
