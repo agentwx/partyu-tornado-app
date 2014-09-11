@@ -2,7 +2,7 @@
 from tornado.gen import coroutine, Return
 
 @coroutine
-def get_hotspots(comms, ll):
+def discover_hotspots(comms, ll):
     ''' Return a list of the best hotspots around! '''
     fsq_comm = comms['fsq']
     fb_comm = comms['fb']
@@ -33,19 +33,22 @@ def get_hotspots(comms, ll):
 
     #create the hotspot object
     for vid, venue in all_venues_events.iteritems():
-        events = venue['events'] if 'events' in venue else {}
-        h = Hotspot(vid, venue, events)
+
+        h = Hotspot(vid, venue)
         hotspots.append(h.__dict__)
 
     raise Return(hotspots)
 
+
 class Hotspot(object):
-    def __init__(self, hid, venue, events):
+    def __init__(self, hid, venue):
         self.hid = hid
 
+        if 'events' not in venue:
+            venue['events'] = {}
 
-        self.events = [ {'id': eid, 'name': event['name'], 'start_time': event['start_time'],
-                            'attending': event['attending_count'] if 'attending_count' in event else '?' }
-                                for eid, event in events.iteritems() ]
+        events = [ {'id': eid, 'name': event['name'], 'start_time': event['start_time'],
+                    'attending': event['attending_count'] if 'attending_count' in event else '?' }
+                        for eid, event in venue['events'].iteritems() ]
 
-        self.venue = { 'name': venue['name'], 'll': venue['ll'] }
+        self.venue = { 'name': venue['name'], 'll': venue['ll'], 'events': events }

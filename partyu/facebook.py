@@ -55,16 +55,17 @@ class FacebookComm(object):
         ''' Fetch all events for a list of foursquare venue names '''
         search_url = FacebookComm.BASE_URL.format(endpoint=FacebookComm.SEARCH_ENDPOINT)
 
-        #try matching a foursquare venue to a facebook place
         fb_venues = {}
         tasks = {}
 
+        #try matching a foursquare venue to a facebook place
         for vname, venue in venues.iteritems():
             ll = venue['ll']
             tasks[vname] = Task(self.get_places, ll=ll, q=friendly_str(vname))
 
         log.info('Fetching {0} places from Facebook...'.format(len(tasks.keys())))
 
+        #fetch all places at once
         places = yield tasks
 
         for vname, place in places.iteritems():

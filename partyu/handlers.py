@@ -2,7 +2,7 @@
 from tornado.web import RequestHandler
 from tornado.gen import coroutine
 
-from hotspots import get_hotspots
+from hotspots import discover_hotspots
 
 
 class GetVenuesHandler(RequestHandler):
@@ -34,12 +34,15 @@ class GetPlacesHandler(RequestHandler):
 class GetHotspotsHandler(RequestHandler):
     def initialize(self):
         self.comms = self.application.comms
+        self.db = self.application.db
 
     @coroutine
     def get(self):
         ll = self.get_query_argument('ll', '-30.02,-51.23')
 
-        hotspots = yield get_hotspots(self.comms, ll)
+        coll_names = yield self.db.collection_names()
+
+        hotspots = yield discover_hotspots(self.comms, ll)
 
         response = { 'hotspots': hotspots }
         self.write(response)
